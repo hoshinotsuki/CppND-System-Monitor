@@ -1,7 +1,9 @@
 #include "linux_parser.h"
 
 #include <dirent.h>
-#include <unistd.h> 
+#include <unistd.h>
+
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -45,7 +47,7 @@ string LinuxParser::Kernel() {
   return kernel;
 }
 
-// BONUS: Update this to use std::filesystem
+// TODO: BONUS: Update this to use std::filesystem
 vector<int> LinuxParser::Pids() {
   vector<int> pids;
   DIR* directory = opendir(kProcDirectory.c_str());
@@ -64,13 +66,12 @@ vector<int> LinuxParser::Pids() {
   closedir(directory);
   return pids;
 }
- 
 
 float LinuxParser::MemoryUtilization() {
   string line;
   string key;
   int value;
-  int MemTotal, MemFree; 
+  int MemTotal, MemFree;
   std::ifstream fstream(kProcDirectory + kMeminfoFilename);
   if (fstream.is_open()) {
     while (std::getline(fstream, line)) {
@@ -78,30 +79,28 @@ float LinuxParser::MemoryUtilization() {
       std::istringstream linestream(line);
       while (linestream >> key >> value) {
         if (key == "MemTotal") {
-          MemTotal =  value;
+          MemTotal = value;
         }
         if (key == "MemFree") {
           MemFree = value;
-        } 
+        }
       }
     }
   }
-  return (MemTotal - MemFree)*1.0 / (MemTotal*1.0); // explicit conversion
+  return (MemTotal - MemFree) * 1.0 / MemTotal;  // explicit conversion
 }
- 
-long LinuxParser::UpTime() { 
+
+long LinuxParser::UpTime() {
   string line;
   long up_sys, idle;
-  std::ifstream filestream(kProcDirectory+kUptimeFilename);
-  if(filestream.is_open())
-  {
-    std::getline(filestream,line);
+  std::ifstream filestream(kProcDirectory + kUptimeFilename);
+  if (filestream.is_open()) {
+    std::getline(filestream, line);
     std::istringstream linestream(line);
-    linestream>>up_sys>>idle;
+    linestream >> up_sys >> idle;
     return up_sys;
   }
-
- }
+}
 
 // TODO: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() { return 0; }
@@ -116,45 +115,59 @@ long LinuxParser::ActiveJiffies() { return 0; }
 // TODO: Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() { return 0; }
 
-// TODO: Read and return CPU utilization
-vector<string> LinuxParser::CpuUtilization() { return {}; }
- 
+// Read and return CPU utilization
+vector<string> LinuxParser::CpuUtilization() {
+  string line, key, value;
+  vector<string> _cpuStates{};
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> key) {
+        if (key == "cpu") {
+          for (int n = 1; n <= 10; n++) {
+            linestream >> value;
+            _cpuStates.push_back(value);
+          }
+        };
+      }
+    }
+  }
+  return _cpuStates;
+}
+
 int LinuxParser::TotalProcesses() {
   string line;
   string key;
   int value;
-  std::ifstream filestream(kProcDirectory+kStatFilename);
+  std::ifstream filestream(kProcDirectory + kStatFilename);
   if (filestream.is_open()) {
-    while (std::getline(filestream, line)) { 
+    while (std::getline(filestream, line)) {
       std::istringstream linestream(line);
       while (linestream >> key >> value) {
-        if (key == "processes") { 
-          return value;
-        }
-      }
-    }
-  } 
-}
- 
-int LinuxParser::RunningProcesses() {
-  string line, key;
-  int value;
-  std::ifstream filestream(kProcDirectory+kStatFilename);
-  if(filestream.is_open())
-  {
-    while(std::getline(filestream,line))
-    {
-      std::istringstream linestream(line);
-      while(linestream>>key>>value)
-      {
-        if (key == "procs_running")
-        {
+        if (key == "processes") {
           return value;
         }
       }
     }
   }
- }
+}
+
+int LinuxParser::RunningProcesses() {
+  string line, key;
+  int value;
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> key >> value) {
+        if (key == "procs_running") {
+          return value;
+        }
+      }
+    }
+  }
+}
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
