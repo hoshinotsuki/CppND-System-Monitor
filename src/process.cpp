@@ -22,7 +22,6 @@ float Process::CpuUtilization() {
   return _cpu;
 }
 string Process::Ram() { return LinuxParser::Ram(Pid()); }
-// TODO: 5
 long int Process::UpTime() { return LinuxParser::UpTime(Pid()); }
 // TODO: 6. Return the command that generated this process
 string Process::Command() { return LinuxParser::Command(Pid()); }
