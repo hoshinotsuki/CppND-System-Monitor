@@ -14,41 +14,18 @@ using std::to_string;
 using std::vector;
 
 int Process::Pid() { return _pid; }
-
-string Process::User() {
-  int _pid = Pid();
-  string _user = LinuxParser::User(_pid);
-  return _user;
-}
-
+string Process::User() { return LinuxParser::User(Pid()); }
 // TODO: 3
 float Process::CpuUtilization() {
   int _pid = Pid();
   float _cpu;
   return _cpu;
 }
-
-// TODO: 4
-string Process::Ram() {
-  int _pid = Pid();
-  string _ram;
-  return _ram;
-}
-
+string Process::Ram() { return LinuxParser::Ram(Pid()); }
 // TODO: 5
-long int Process::UpTime() {
-  int _pid = Pid();
-  long int _uptime;
-  return _uptime;
-}
-
+long int Process::UpTime() { return LinuxParser::UpTime(Pid()); }
 // TODO: 6. Return the command that generated this process
-string Process::Command() {
-  int _pid = Pid();
-  string _cmd;
-  return _cmd;
-}
-
+string Process::Command() { return LinuxParser::Command(Pid()); }
 bool Process::operator<(const Process& other) const {
   return _pid < other._pid;
 }
