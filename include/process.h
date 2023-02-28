@@ -2,10 +2,11 @@
 #define PROCESS_H
 
 #include <string>
-
+using namespace std;
 class Process {
  public:
-  Process(int p) : _pid(p) {}
+  Process(int p, string u, float c, string r, long int t, string cmd)
+      : _pid(p), _user(u), _cpu(c), _ram(r), _uptime(t), _cmd(cmd) {}
   int Pid();
   std::string User();
   float CpuUtilization();
