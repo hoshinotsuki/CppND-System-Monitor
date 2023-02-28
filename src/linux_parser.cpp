@@ -13,6 +13,7 @@ using std::string;
 using std::to_string;
 using std::vector;
 
+// System
 string LinuxParser::OperatingSystem() {
   string line;
   string key;
@@ -67,7 +68,7 @@ float LinuxParser::MemoryUtilization() {
       }
     }
   }
-  return (MemTotal - MemFree) * 1.0 / MemTotal;  // explicit conversion
+  return (MemTotal - MemFree) * 1.0 / MemTotal;
 }
 
 long LinuxParser::UpTime() {
@@ -135,7 +136,7 @@ int LinuxParser::RunningProcesses() {
   }
 }
 
-// 1. TODO: BONUS: Update this to use std::filesystem
+// Processes
 vector<int> LinuxParser::Pids() {
   vector<int> pids;
   DIR* directory = opendir(kProcDirectory.c_str());
@@ -171,18 +172,38 @@ string LinuxParser::User(int pid) {
   }
 }
 
-// TODO: 3. Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
+float LinuxParser::CpuUtilization(int pid) {
+  string line, key, value;
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) +
+                           kStatFilename);
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      std::vector<string> values;
+      while (linestream >> value) {
+        values.push_back(value);
+      }
+      long int utime = std::stol(values[13]) /
+                       sysconf(_SC_CLK_TCK);  // CPU time spent in user code
+      long int stime = std::stol(values[14]) /
+                       sysconf(_SC_CLK_TCK);  // CPU time spent in kernel code
+      long int cutime = std::stol(values[15]) /
+                        sysconf(_SC_CLK_TCK);  // Waited-for children's CPU time
+                                               // spent in user code
+      long int cstime = std::stol(values[16]) /
+                        sysconf(_SC_CLK_TCK);  // Waited-for children's CPU time
+                                               // spent in kernel code
+      long int starttime =
+          std::stol(values[21]) /
+          sysconf(_SC_CLK_TCK);  //  Time when the process started
 
-// TODO: 3. Read and return the number of active jiffies for a PID
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid [[maybe_unused]]) { return 0; }
-
-// TODO: 3. Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
-
-// TODO: 3. Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+      auto total_time = utime + stime + cutime + cstime;
+      auto process_time = LinuxParser::UpTime() - starttime;
+      float cpu_usage = 100.0 * total_time / process_time;
+      return cpu_usage;
+    }
+  }
+}
 
 string LinuxParser::Ram(int pid) {
   string line, key, value;
@@ -212,12 +233,19 @@ long int LinuxParser::UpTime(int pid) {
       while (linestream >> value) {
         values.push_back(value);
       }
-      long int seconds = LinuxParser::UpTime() - std::stol(values[21]) / sysconf(_SC_CLK_TCK);
+      long int seconds =
+          LinuxParser::UpTime() - std::stol(values[21]) / sysconf(_SC_CLK_TCK);
       return seconds;
     }
   }
 }
 
-// TODO: 6. Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid [[maybe_unused]]) { return string(); }
+string LinuxParser::Command(int pid) {
+  string line;
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) +
+                           kCmdlineFilename);
+  if (filestream.is_open()) {
+    std::getline(filestream, line);
+    return line;
+  }
+}
