@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <set>
 #include <string>
@@ -22,7 +23,7 @@ Processor& System::Cpu() { return cpu_; }
 vector<Process>& System::Processes() {
   vector<int> pids = LinuxParser::Pids();
   for (auto _p : pids) {
-    string _u = LinuxParser::User(_p); 
+    string _u = LinuxParser::User(_p);
     float _c = LinuxParser::CpuUtilization(_p);
     string _r = LinuxParser::Ram(_p);
     long int _t = LinuxParser::UpTime(_p);
@@ -30,6 +31,7 @@ vector<Process>& System::Processes() {
     Process p = Process(_p, _u, _c, _r, _t, _cmd);
     processes_.push_back(p);
   }
+  std::sort(processes_.begin(), processes_.end());
   return processes_;
 }
 
