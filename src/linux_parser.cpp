@@ -84,8 +84,7 @@ string LinuxParser::Kernel() {
 float LinuxParser::MemoryUtilization() {
   string memTotal = "MemTotal:";
   string memFree = "MemFree:";
-  float Total =
-      findValueByKey<float>(memTotal, kMeminfoFilename);  
+  float Total = findValueByKey<float>(memTotal, kMeminfoFilename);
   float Free = findValueByKey<float>(memFree, kMeminfoFilename);
   return (Total - Free) * 1.0 / Total;
 }
@@ -182,10 +181,17 @@ string LinuxParser::User(int pid) {
   }
   return " ";
 }
-
-// TODO:
+ 
 float LinuxParser::CpuUtilization(int pid) {
   string line, key, value;
+  long int utime,  // CPU time spent in user code
+      stime,       // CPU time spent in kernel code
+      cutime,      // Waited-for children's CPU time spent in user code
+      cstime,      // Waited-for children's CPU time spent in kernel code
+      starttime,   //  Time when the process started
+      total_time,  // utime + stime + cutime + cstime
+      process_time; // system uptime - process start_time
+  float cpu_usage;
   std::ifstream filestream(kProcDirectory + std::to_string(pid) +
                            kStatFilename);
   if (filestream.is_open()) {
@@ -195,30 +201,21 @@ float LinuxParser::CpuUtilization(int pid) {
       while (linestream >> value) {
         values.push_back(value);
       }
-      long int utime = std::stol(values[13]) /
-                       sysconf(_SC_CLK_TCK);  // CPU time spent in user code
-      long int stime = std::stol(values[14]) /
-                       sysconf(_SC_CLK_TCK);  // CPU time spent in kernel code
-      long int cutime = std::stol(values[15]) /
-                        sysconf(_SC_CLK_TCK);  // Waited-for children's CPU time
-                                               // spent in user code
-      long int cstime = std::stol(values[16]) /
-                        sysconf(_SC_CLK_TCK);  // Waited-for children's CPU time
-                                               // spent in kernel code
-      long int starttime =
-          std::stol(values[21]) /
-          sysconf(_SC_CLK_TCK);  //  Time when the process started
-
-      auto total_time = utime + stime + cutime + cstime;
-      auto process_time = LinuxParser::UpTime() - starttime;
-      float cpu_usage = 1.0 * total_time / process_time;
+      utime = std::stol(values[13]) / sysconf(_SC_CLK_TCK);
+      stime = std::stol(values[14]) / sysconf(_SC_CLK_TCK);
+      cutime = std::stol(values[15]) / sysconf(_SC_CLK_TCK);
+      cstime = std::stol(values[16]) / sysconf(_SC_CLK_TCK);
+      starttime = std::stol(values[21]) / sysconf(_SC_CLK_TCK);
+      total_time = utime + stime + cutime + cstime;
+      process_time = LinuxParser::UpTime() - starttime;
+      cpu_usage = 1.0 * total_time / process_time;
       return cpu_usage;
     }
   }
   return 0.0;
 }
 
-//TODO:
+// read and return VmSize in "/proc/pid/status"
 string LinuxParser::Ram(int pid) {
   string line, key, value;
   std::ifstream filestream(kProcDirectory + std::to_string(pid) +
@@ -234,8 +231,10 @@ string LinuxParser::Ram(int pid) {
       }
     }
   }
+  return "";
 }
 
+// return process[id] uptime from /proc/pid/stat
 long int LinuxParser::UpTime(int pid) {
   string line, key, value;
   std::ifstream filestream(kProcDirectory + std::to_string(pid) +
