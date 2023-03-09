@@ -44,7 +44,7 @@ T getValueOfFile(std::string const &filename) {
   return value;
 };
 
-// System from "/etc/os-release"
+// System name from "PRETTY_NAME" in "/etc/os-release"
 string LinuxParser::OperatingSystem() {
   string line;
   string key;
@@ -57,7 +57,7 @@ string LinuxParser::OperatingSystem() {
       std::replace(line.begin(), line.end(), '"', ' ');
       std::istringstream linestream(line);
       while (linestream >> key >> value) {
-        if (key == "PRETTY_NAME") {
+        if (key == filterOSName) {
           std::replace(value.begin(), value.end(), '_', ' ');
           return value;
         }
@@ -82,8 +82,8 @@ string LinuxParser::Kernel() {
 
 // Return the system memory utilization from "/proc/memInfo"
 float LinuxParser::MemoryUtilization() {
-  string memTotal = "MemTotal:";
-  string memFree = "MemFree:";
+  string memTotal = filterMemTotal;
+  string memFree = filterMemFree;
   float Total = findValueByKey<float>(memTotal, kMeminfoFilename);
   float Free = findValueByKey<float>(memFree, kMeminfoFilename);
   return (Total - Free) * 1.0 / Total;
@@ -111,7 +111,7 @@ vector<string> LinuxParser::CpuUtilization() {
     while (std::getline(filestream, line)) {
       std::istringstream linestream(line);
       while (linestream >> key) {
-        if (key == "cpu") {
+        if (key == filterCpu) {
           for (int n = 1; n <= 10; n++) {
             linestream >> value;
             _cpuStates.push_back(value);
@@ -125,17 +125,38 @@ vector<string> LinuxParser::CpuUtilization() {
 
 // Read and return the TotalProcesses from "/proc/stat"
 int LinuxParser::TotalProcesses() {
-  std::string key = "processes";
-  int value = findValueByKey<int>(
-      key, LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
-  return value;
+  string line;
+  string key;
+  int value;
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> key >> value) {
+        if (key == filterProcesses) {
+          return value;
+        }
+      }
+    }
+  }
+  return 0;
 }
 
 // Read and return the RunningProcesses from "/proc/stat"
 int LinuxParser::RunningProcesses() {
-  std::string key = "procs_running";
-  int value = findValueByKey<int>(
-      key, LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
+  string line, key;
+  int value;
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> key >> value) {
+        if (key == filterRunningProcesses) {
+          return value;
+        }
+      }
+    }
+  }
   return value;
 }
 
@@ -161,36 +182,35 @@ vector<int> LinuxParser::Pids() {
 
 // Return uid for process[pid] from "/proc/pid/stat"
 string LinuxParser::Uid(int pid) {
-  std::string key = "Uid:";
+  std::string key = filterUID;
   std::string value = findValueByKey<std::string>(
-      key, LinuxParser::kProcDirectory + std::to_string(pid) +
-               LinuxParser::kStatFilename);
+      key, kProcDirectory + std::to_string(pid) + kStatFilename);
   return value;
 }
 
 // Return username for process[pid] from "/etc/passwd"
 string LinuxParser::User(int pid) {
   std::string line, user, x, uid;
-  std::ifstream filestream(LinuxParser::kPasswordPath);
+  std::ifstream filestream(kPasswordPath);
   if (filestream.is_open()) {
     while (std::getline(filestream, line, ':')) {
       std::istringstream iss(line);
       iss >> user >> x >> uid;
-      if (uid == LinuxParser::Uid(pid)) return user;
+      if (uid == Uid(pid)) return user;
     }
   }
   return " ";
 }
- 
+
 float LinuxParser::CpuUtilization(int pid) {
   string line, key, value;
-  long int utime,  // CPU time spent in user code
-      stime,       // CPU time spent in kernel code
-      cutime,      // Waited-for children's CPU time spent in user code
-      cstime,      // Waited-for children's CPU time spent in kernel code
-      starttime,   //  Time when the process started
-      total_time,  // utime + stime + cutime + cstime
-      process_time; // system uptime - process start_time
+  long int utime,    // CPU time spent in user code
+      stime,         // CPU time spent in kernel code
+      cutime,        // Waited-for children's CPU time spent in user code
+      cstime,        // Waited-for children's CPU time spent in kernel code
+      starttime,     //  Time when the process started
+      total_time,    // utime + stime + cutime + cstime
+      process_time;  // system uptime - process start_time
   float cpu_usage;
   std::ifstream filestream(kProcDirectory + std::to_string(pid) +
                            kStatFilename);
@@ -224,7 +244,7 @@ string LinuxParser::Ram(int pid) {
     while (std::getline(filestream, line)) {
       std::istringstream linestream(line);
       while (linestream >> key >> value) {
-        if (key == "VmRSS:") {
+        if (key == filterProcMem) {
           float mg = std::stof(value) / 1000;
           return std::to_string(mg).substr(0, 6);
         }
