@@ -15,19 +15,15 @@ using std::size_t;
 using std::string;
 using std::vector;
 
-// TODO: Return the system's CPU
+// Return the system's CPU
 Processor& System::Cpu() { return cpu_; }
 
-// TODO: Return a container composed of the system's processes
+// Return a container composed of the system's processes
 vector<Process>& System::Processes() {
   vector<int> pids = LinuxParser::Pids();
-
   for (auto _p : pids) {
-    string _u = LinuxParser::User(_p);
-
-    // TODO: CPU for pid
-    float _c = 0;
-
+    string _u = LinuxParser::User(_p); 
+    float _c = LinuxParser::CpuUtilization(_p);
     string _r = LinuxParser::Ram(_p);
     long int _t = LinuxParser::UpTime(_p);
     string _cmd = LinuxParser::Command(_p);

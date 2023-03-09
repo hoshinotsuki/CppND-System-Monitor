@@ -44,7 +44,7 @@ T getValueOfFile(std::string const &filename) {
   return value;
 };
 
-// System
+// System from "/etc/os-release"
 string LinuxParser::OperatingSystem() {
   string line;
   string key;
@@ -215,7 +215,7 @@ float LinuxParser::CpuUtilization(int pid) {
   return 0.0;
 }
 
-// read and return VmSize in "/proc/pid/status"
+// return the physical RAM capacity/resident set size(RSS) in "/proc/pid/status"
 string LinuxParser::Ram(int pid) {
   string line, key, value;
   std::ifstream filestream(kProcDirectory + std::to_string(pid) +
@@ -224,7 +224,7 @@ string LinuxParser::Ram(int pid) {
     while (std::getline(filestream, line)) {
       std::istringstream linestream(line);
       while (linestream >> key >> value) {
-        if (key == "VmSize:") {
+        if (key == "VmRSS:") {
           float mg = std::stof(value) / 1000;
           return std::to_string(mg).substr(0, 6);
         }

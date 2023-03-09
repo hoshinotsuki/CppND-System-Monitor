@@ -20,5 +20,5 @@ string Process::Ram() { return LinuxParser::Ram(Pid()); }
 long int Process::UpTime() { return LinuxParser::UpTime(Pid()); }
 string Process::Command() { return LinuxParser::Command(Pid()); }
 bool Process::operator<(const Process& other) const {
-  return _pid < other._pid;
+  return _cpu < other._cpu;
 }
