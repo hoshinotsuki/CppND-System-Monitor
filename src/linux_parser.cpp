@@ -67,6 +67,7 @@ string LinuxParser::OperatingSystem() {
   return value;
 }
 
+// Return the system kernel from "/proc/version"
 string LinuxParser::Kernel() {
   string os, kernel, version;
   string line;
@@ -79,16 +80,17 @@ string LinuxParser::Kernel() {
   return kernel;
 }
 
-// Read and return the system memory utilization
+// Return the system memory utilization from "/proc/memInfo"
 float LinuxParser::MemoryUtilization() {
   string memTotal = "MemTotal:";
   string memFree = "MemFree:";
   float Total =
-      findValueByKey<float>(memTotal, kMeminfoFilename);  // "/proc/memInfo"
+      findValueByKey<float>(memTotal, kMeminfoFilename);  
   float Free = findValueByKey<float>(memFree, kMeminfoFilename);
   return (Total - Free) * 1.0 / Total;
 }
 
+// Return the system uptime from "/proc/uptime"
 long LinuxParser::UpTime() {
   string line;
   long up_sys, idle;
@@ -101,6 +103,7 @@ long LinuxParser::UpTime() {
   return up_sys;
 }
 
+// Read and return the 10 values of the Cpu for the system from "/proc/stat"
 vector<string> LinuxParser::CpuUtilization() {
   string line, key, value;
   vector<string> _cpuStates{};
@@ -157,7 +160,7 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
-// Read and return the uid of the process[pid] from "/proc/pid/stat"
+// Return uid for process[pid] from "/proc/pid/stat"
 string LinuxParser::Uid(int pid) {
   std::string key = "Uid:";
   std::string value = findValueByKey<std::string>(
@@ -166,7 +169,7 @@ string LinuxParser::Uid(int pid) {
   return value;
 }
 
-// Read and return the username of the Uid from "/etc/passwd"
+// Return username for process[pid] from "/etc/passwd"
 string LinuxParser::User(int pid) {
   std::string line, user, x, uid;
   std::ifstream filestream(LinuxParser::kPasswordPath);
